@@ -25,6 +25,12 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Fix pubspec.yaml Automatically
+        run: |
+          sed -i 's/sdk: \^3.11.5/sdk: ">=3.2.0 <4.0.0"/g' pubspec.yaml
+          sed -i 's/flutter_lints: \^6.0.0/flutter_lints: ^4.0.0/g' pubspec.yaml
+          sed -i 's/flutter_html: \^3.0.0/flutter_html: 3.0.0-beta.2/g' pubspec.yaml
+
       - name: Install Dependencies
         run: flutter pub get
 
@@ -50,8 +56,11 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - name: Fix pubspec.yaml Automatically
+        run: |
+          sed -i '' 's/sdk: \^3.11.5/sdk: ">=3.2.0 <4.0.0"/g' pubspec.yaml
+          sed -i '' 's/flutter_lints: \^6.0.0/flutter_lints: ^4.0.0/g' pubspec.yaml
+          sed -i '' 's/flutter_html: \^3.0.0/flutter_html: 3.0.0-beta.2/g' pubspec.yaml
 
       - name: Configure iOS Settings for CI
         run: |
@@ -59,6 +68,9 @@ jobs:
           echo 'CODE_SIGNING_ALLOWED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGNING_REQUIRED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGN_IDENTITY=' >> ios/Flutter/Release.xcconfig
+
+      - name: Install Dependencies
+        run: flutter pub get
 
       - name: Pod Install
         run: |
