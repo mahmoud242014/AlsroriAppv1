@@ -12,11 +12,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-// Some plugins (e.g. video_thumbnail) hardcode an older compileSdk that is
-// below what their transitive AndroidX dependencies require. Force any such
-// subproject to compile against a newer SDK to keep the build green.
-// Registered before evaluationDependsOn so the hook is attached before the
-// subproject is evaluated.
+
 subprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
@@ -26,7 +22,7 @@ subprojects {
                 ?.substringAfter("android-")
                 ?.toIntOrNull()
             if (currentCompileSdk == null || currentCompileSdk < 34) {
-                androidExtension.compileSdkVersion(36)
+                androidExtension.compileSdkVersion(35)
             }
         }
     }
