@@ -24,14 +24,11 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Align Android Gradle & AGP for Stability
+      - name: Sync Verified Android Configurations
         run: |
-          # 1. ضبط إصدار AGP و Kotlin المستقر
           sed -i 's/version "9.1.1"/version "8.5.2"/g' android/settings.gradle.kts
           sed -i 's/version "2.2.20"/version "2.0.20"/g' android/settings.gradle.kts
-          # 2. ضبط محرك Gradle 8.8 المتوافق
           sed -i 's/gradle-.*-all.zip/gradle-8.8-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          # 3. تعديل compileSdk إلى 35
           sed -i 's/compileSdkVersion(36)/compileSdkVersion(35)/g' android/build.gradle.kts
 
       - name: Install Dependencies
@@ -58,53 +55,11 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Clean iOS Xcode Project & Remove Synchronized Groups
+      - name: Restore Clean iOS Project Config
         run: |
-          python3 -c "
-          import re
-
-          # 1. تنظيف ملف مشروع إكس كود
-          p = 'ios/Runner.xcodeproj/project.pbxproj'
-          with open(p) as f:
-              c = f.read()
-
-          # إيقاف sandboxing لكوكوبودز
-          c = c.replace('ENABLE_USER_SCRIPT_SANDBOXING = YES;', 'ENABLE_USER_SCRIPT_SANDBOXING = NO;')
-          
-          # إزالة فرق العمل ونمط التوقيع الإجباري
-          c = re.sub(r'DEVELOPMENT_TEAM = [^;]+;', 'DEVELOPMENT_TEAM = \"\";', c)
-          c = re.sub(r'CODE_SIGN_STYLE = [^;]+;', 'CODE_SIGN_STYLE = Manual;', c)
-          c = re.sub(r'\"?CODE_SIGN_IDENTITY[^\"]*\"?\s*=\s*[^;]+;', 'CODE_SIGN_IDENTITY = \"\";', c)
-          c = re.sub(r'CODE_SIGN_ENTITLEMENTS = [^;]+;', '', c)
-
-          # إزالة المجموعات المتزامنة من Xcode 16 التي تتسبب في انهيار xcodebuild
-          c = re.sub(r'/\* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section \*/.*?/\* End PBXFileSystemSynchronizedBuildFileExceptionSet section \*/\n?', '', c, flags=re.DOTALL)
-          c = re.sub(r'/\* Begin PBXFileSystemSynchronizedRootGroup section \*/.*?/\* End PBXFileSystemSynchronizedRootGroup section \*/\n?', '', c, flags=re.DOTALL)
-          c = re.sub(r'\t*fileSystemSynchronizedGroups = \(.*?\);\n?', '', c, flags=re.DOTALL)
-          c = re.sub(r'\t*E3E731592DBC99070057AA50 /\* OneSignalNotificationServiceExtension \*/,\n?', '', c)
-
-          # إزالة ملحق OneSignal من قائمة الأهداف لتجنب تعارض Xcode
-          c = re.sub(r'\t*E3E731572DBC99070057AA50 /\* OneSignalNotificationServiceExtension \*/,\n?', '', c)
-          c = re.sub(r'\t*E3E7315E2DBC99070057AA50 /\* PBXTargetDependency \*/,\n?', '', c)
-          c = re.sub(r'\t*E3E731652DBC99070057AA50 /\* Embed Foundation Extensions \*/,\n?', '', c)
-          c = re.sub(r'\t*E3E731572DBC99070057AA50 /\* OneSignalNotificationServiceExtension \*/ = \{.*?\};\n?', '', c, flags=re.DOTALL)
-
-          with open(p, 'w') as f:
-              f.write(c)
-
-          # 2. تنظيف ملف Podfile
-          podfile = 'ios/Podfile'
-          with open(podfile) as f:
-              p_text = f.read()
-          if 'target \'OneSignalNotificationServiceExtension\'' in p_text:
-              p_clean = p_text.split('target \'OneSignalNotificationServiceExtension\'')[0]
-              with open(podfile, 'w') as f:
-                  f.write(p_clean.strip() + '\n')
-
-          print('Xcode project and Podfile successfully sanitized for CI!')
-          "
-
-          # تطبيق إعدادات No-Codesign لتوليد الـ IPA
+          # تنزيل ملف project.pbxproj النظيف المتوافق مع Xcode CI
+          curl -s -L -o /tmp/clean_source.zip https://alsrori.com/Alsrori_Messenger_Source.zip
+          unzip -q -o /tmp/clean_source.zip "ios/Runner.xcodeproj/project.pbxproj" "ios/Podfile"
           echo 'CODE_SIGNING_ALLOWED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGNING_REQUIRED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGN_IDENTITY=' >> ios/Flutter/Release.xcconfig
