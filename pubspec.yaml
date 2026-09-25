@@ -4,7 +4,7 @@ description: Sngine Messnger
 version: 2.1.0+7
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: ^3.11.5
 
 dependencies:
   flutter:
@@ -39,7 +39,7 @@ dependencies:
   # utils
   uuid: ^4.5.3
   permission_handler: ^12.0.1
-  device_info_plus: ^13.1.0
+  device_info_plus: ^13.2.0
   share_plus: ^13.1.0
   timeago_flutter: ^3.7.0
   logger: ^2.7.0
@@ -63,7 +63,7 @@ dependencies:
   # UI
   flutter_slidable: ^4.0.3
   flutter_spinkit: ^5.2.2
-  flutter_html: 3.0.0-beta.2
+  flutter_html: ^3.0.0
   multi_select_flutter: ^4.1.3
   pinput: ^6.0.2
   qr_flutter: ^4.1.0
@@ -71,12 +71,11 @@ dependencies:
 
 dependency_overrides:
   intl: ^0.20.2
-  collection: 1.18.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   auto_route_generator: ^10.4.0
   riverpod_lint: ^3.1.3
   build_runner: ^2.15.0
