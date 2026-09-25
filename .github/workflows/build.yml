@@ -12,17 +12,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java JDK 21
+      - name: Setup Java JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "21"
+          java-version: "17"
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
           cache: true
+
+      - name: Align Android Gradle & AGP for Stability
+        run: |
+          # ضبط إصدارات Gradle و AGP المتوافقة مع فلاتر
+          sed -i 's/version "9.1.1"/version "8.5.2"/g' android/settings.gradle.kts
+          sed -i 's/version "2.2.20"/version "2.0.20"/g' android/settings.gradle.kts
+          sed -i 's/gradle-.*-all.zip/gradle-8.8-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Install Dependencies
         run: flutter pub get
@@ -48,18 +55,29 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Configure iOS Settings & Strip Signing for CI
+      - name: Configure iOS Settings & Strip Signing
         run: |
-          # 1. إيقاف الـ Sandboxing لـ CocoaPods في Xcode
-          sed -i '' 's/ENABLE_USER_SCRIPT_SANDBOXING = YES;/ENABLE_USER_SCRIPT_SANDBOXING = NO;/g' ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-          
-          # 2. إيقاف اشتراط فريق العمل والشهادات لملحق OneSignal
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-          sed -i '' 's/DEVELOPMENT_TEAM = Q3YBB55MTY;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-          sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development";/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
-          sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' ios/Runner.xcodeproj/project.pbxproj 2>/dev/null || true
+          python3 -c "
+          import re
+          p = 'ios/Runner.xcodeproj/project.pbxproj'
+          with open(p) as f:
+              c = f.read()
 
-          # 3. فرض No-Codesign على Flutter Release
+          # إيقاف Sandboxing لكوكوبودز
+          c = c.replace('ENABLE_USER_SCRIPT_SANDBOXING = YES;', 'ENABLE_USER_SCRIPT_SANDBOXING = NO;')
+          # إزالة فرق العمل ونمط التوقيع التلقائي
+          c = re.sub(r'DEVELOPMENT_TEAM = [^;]+;', 'DEVELOPMENT_TEAM = \"\";', c)
+          c = re.sub(r'CODE_SIGN_STYLE = [^;]+;', 'CODE_SIGN_STYLE = Manual;', c)
+          c = re.sub(r'\"?CODE_SIGN_IDENTITY[^\"]*\"?\s*=\s*[^;]+;', 'CODE_SIGN_IDENTITY = \"\";', c)
+          # إزالة اشتراط ملف Entitlements لتخطي فحص البروفايل في السحابة
+          c = re.sub(r'CODE_SIGN_ENTITLEMENTS = [^;]+;', '', c)
+
+          with open(p, 'w') as f:
+              f.write(c)
+          print('pbxproj successfully sanitized for CI!')
+          "
+
+          # تطبيق إعدادات No-Codesign على Flutter Release
           echo 'CODE_SIGNING_ALLOWED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGNING_REQUIRED=NO' >> ios/Flutter/Release.xcconfig
           echo 'CODE_SIGN_IDENTITY=' >> ios/Flutter/Release.xcconfig
